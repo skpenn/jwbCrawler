@@ -73,7 +73,8 @@ public class Lesson {
 
         sb.append(lessonCode)
                 .append("\t")
-                .append(lessonName);
+                .append(lessonName)
+                .append("\t");
 
         Iterator<String> iterator=teachers.iterator();
         if(iterator.hasNext()) {

@@ -16,6 +16,20 @@ public class Attend{
     private String location;
 
     public final static List<String> WEEK= Arrays.asList("周日", "周一", "周二", "周三", "周四", "周五", "周六");
+    public final static List<String> CLASS_TIME = Arrays.asList("0:00-0:00",
+            "8:00-8:45",
+            "8:50-9:35",
+            "9:50-10:35",
+            "10:40-11:25",
+            "11:30-12:15",
+            "13:15-14:00",
+            "14:05-14:50",
+            "14:55-15:40",
+            "15:55-16:40",
+            "16:45-17:30",
+            "18:30-19:15",
+            "19:20-20:05",
+            "20:10-20:55");
 
     public Attend(){}
     public Attend(String interval, int week, List<Integer> classes, String location){
