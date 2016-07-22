@@ -1,5 +1,9 @@
 package jwbCrawler;
 
+import jwbCrawler.Data.Lesson;
+import jwbCrawler.Data.Lessons;
+import jwbCrawler.Data.Attend;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -16,10 +20,16 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.*;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,7 +65,11 @@ public class Crawler {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpGet httpGet = new HttpGet();
         try {
-            URI uri = new URIBuilder().setScheme("http").setHost(HOST).setPath("/default2.aspx").build();
+            URI uri = new URIBuilder()
+                    .setScheme("http")
+                    .setHost(HOST)
+                    .setPath("/default2.aspx")
+                    .build();
             httpGet.setURI(uri);
             HttpClientContext context=new HttpClientContext();
             CookieStore cookieStore=new BasicCookieStore();
@@ -80,12 +94,20 @@ public class Crawler {
 
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean login(){
         if(getCookie()){
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpPost httpPost=new HttpPost();
             try {
-                URI uri = new URIBuilder().setScheme("http").setHost(HOST).setPath("/default2.aspx").build();
+                URI uri = new URIBuilder()
+                        .setScheme("http")
+                        .setHost(HOST)
+                        .setPath("/default2.aspx")
+                        .build();
                 httpPost.setURI(uri);
                 HttpClientContext context = new HttpClientContext();
                 List<NameValuePair> formParams=new ArrayList<>();
@@ -150,26 +172,73 @@ public class Crawler {
     public boolean getLesson(){
         CloseableHttpClient httpClient= HttpClients.createDefault();
         HttpGet httpGet = new HttpGet();
+
         try{
-            URI uri=new URIBuilder().setScheme("HTTP").setHost(HOST).setPath("/xskbcx.aspx").setParameter("xh", id).build();
+            URI uri=new URIBuilder()
+                    .setScheme("HTTP")
+                    .setHost(HOST)
+                    .setPath("/xskbcx.aspx")
+                    .setParameter("xh", id)
+                    .build();
             httpGet.setURI(uri);
             HttpClientContext context=new HttpClientContext();
             CookieStore cookieStore=new BasicCookieStore();
             cookies.forEach(cookieStore::addCookie);
             context.setCookieStore(cookieStore);
+
             CloseableHttpResponse response=httpClient.execute(httpGet,context);
             state_code=response.getStatusLine().getStatusCode();
             if(state_code>=400){
                 System.out.println("State Code:"+state_code);
                 return false;
             }
-            OutputStreamWriter osw= new OutputStreamWriter(new FileOutputStream("test.html"));
             InputStreamReader isr=new InputStreamReader(response.getEntity().getContent(), DEFAULT_CHARSET);
+            StringBuilder sb=new StringBuilder();
             char[] buf=new char[1024];
-            while(isr.read(buf)>=0)osw.write(buf);
+            while(isr.read(buf)>=0)sb.append(buf);
+            String str=sb.toString().replaceAll("&nbsp;", " ");
             httpClient.close();
-            osw.close();
             response.close();
+
+            Document document=Jsoup.parse(str, uri.toString());
+            Element table=document.getElementById("xsgrid");
+            Elements columns=table.getElementsByTag("tr");
+            columns.remove(0);
+            Lessons lessons=new Lessons();
+            for(Element element:columns){
+                Elements elements=element.getElementsByTag("td");
+                Element[] tds=new Element[elements.size()];
+                elements.toArray(tds);
+                String lessonCode=tds[0].text();
+                String lessonName=tds[1].text();
+                List<String> teachers=Arrays.asList(tds[2].html().replaceAll("</?a[^>]*>", "").split("<br[ ]*/?>"));
+                String semester=tds[3].text();
+                String[] times=tds[4].html().replaceAll("</?a[^>]*>", "").split("<br[ ]*/?>");
+                List<Attend> attends=new ArrayList<>();
+                if(times.length>1||!times[0].equals("")) {
+                    for (String time : times) {
+                        int week = Attend.WEEK.indexOf(time.substring(0, 2));
+                        Pattern pattern = Pattern.compile("[\\d,，]+");
+                        List<Integer> classes = new ArrayList<>();
+                        Matcher matcher = pattern.matcher(time);
+                        if (matcher.find())
+                            Arrays.asList(matcher.group().split("[,，]")).forEach(e -> classes.add(Integer.parseInt(e)));
+                        String interval = "";
+                        pattern = Pattern.compile("(?<=\\{)([^\\}]+)(?=\\})");
+                        matcher = pattern.matcher(time);
+                        if (matcher.find()) interval = matcher.group();
+                        Attend attend = new Attend(interval, week, classes, "");
+                        attends.add(attend);
+                    }
+                }
+                List<String> locations=Arrays.asList(tds[5].html().replaceAll("</?a[^>]*>", "").split("<br[ ]*/?>"));
+                Iterator<String> iterator=locations.iterator();
+                attends.forEach(attend -> attend.setLocation(iterator.next()));
+                Lesson lesson=new Lesson(lessonCode, lessonName, teachers, semester, attends);
+                lessons.add(lesson);
+            }
+            System.out.print(lessons.toString());
+
             return true;
         }
         catch (Exception e){
