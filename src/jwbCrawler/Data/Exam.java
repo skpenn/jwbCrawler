@@ -1,7 +1,6 @@
 package jwbCrawler.Data;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
@@ -117,21 +116,19 @@ public class Exam {
 
     @Override
     public String toString(){
-        StringBuilder sb=new StringBuilder();
-        sb.append(classCode)
-                .append("\t")
-                .append(className)
-                .append("\t")
-                .append(Double.toString(credit))
-                .append("\t")
-                .append(semester)
-                .append("\t")
-                .append(examDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日")))
-                .append(startTime.format(DateTimeFormatter.ofPattern("HH:mm")))
-                .append("-")
-                .append(endTime.format(DateTimeFormatter.ofPattern("HH:mm")))
-                .append("\t")
-                .append(location);
-        return sb.toString();
+        return classCode
+                +"\t"
+                +className
+                +"\t"
+                +Double.toString(credit)
+                +"\t"
+                +semester
+                +"\t"
+                +examDate.format(DateTimeFormatter.ofPattern("yyyy年M月d日"))
+                +startTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+                +"-"
+                +endTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+                +"\t"
+                +location;
     }
 }
